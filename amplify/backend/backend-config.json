@@ -1,0 +1,24 @@
+{
+	"storage": {
+		"S3": {
+			"service": "S3",
+			"providerPlugin": "awscloudformation"
+		}
+	},
+	"function": {
+		"SyncS3Triggers": {
+			"build": true,
+			"providerPlugin": "awscloudformation",
+			"service": "Lambda",
+			"dependsOn": [
+				{
+					"category": "storage",
+					"resourceName": "S3",
+					"attributes": [
+						"BucketName"
+					]
+				}
+			]
+		}
+	}
+}

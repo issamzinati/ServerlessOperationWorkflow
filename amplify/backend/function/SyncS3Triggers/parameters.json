@@ -1,0 +1,4 @@
+{
+    "ElasticsearchHostName": "your_es_host_ip",
+    "ElasticsearchPort": "9200"
+}

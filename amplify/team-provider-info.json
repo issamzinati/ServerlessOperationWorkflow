@@ -1,0 +1,15 @@
+{
+    "dev": {
+        "awscloudformation": {
+            "AuthRoleName": "amplify-udemy-s3-trigger-dev-150000-authRole",
+            "UnauthRoleArn": "arn:aws:iam::373336311667:role/amplify-udemy-s3-trigger-dev-150000-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::373336311667:role/amplify-udemy-s3-trigger-dev-150000-authRole",
+            "Region": "us-east-1",
+            "DeploymentBucketName": "amplify-udemy-s3-trigger-dev-150000-deployment",
+            "UnauthRoleName": "amplify-udemy-s3-trigger-dev-150000-unauthRole",
+            "StackName": "amplify-udemy-s3-trigger-dev-150000",
+            "StackId": "arn:aws:cloudformation:us-east-1:373336311667:stack/amplify-udemy-s3-trigger-dev-150000/2206cdb0-8623-11ea-b9be-0e353767367b",
+            "AmplifyAppId": "d1hnucfugcoeiv"
+        }
+    }
+}

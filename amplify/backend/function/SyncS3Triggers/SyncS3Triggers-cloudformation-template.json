@@ -1,0 +1,367 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Lambda resource stack creation using Amplify CLI",
+	"Parameters": {
+		"env": {
+			"Type": "String"
+		},
+		"storageS3BucketName": {
+			"Type": "String",
+			"Default": "storageS3BucketName"
+		},
+		"ElasticsearchHostName": {
+			"Type": "String"
+		},
+		"ElasticsearchPort": {
+			"Type": "String"
+		}
+	},
+	"Conditions": {
+		"ShouldNotCreateEnvResources": {
+			"Fn::Equals": [
+				{
+					"Ref": "env"
+				},
+				"NONE"
+			]
+		}
+	},
+	"Resources": {
+		"LambdaFunction": {
+			"Type": "AWS::Lambda::Function",
+			"Metadata": {
+				"aws:asset:path": "./src",
+				"aws:asset:property": "Code"
+			},
+			"Properties": {
+				"Handler": "index.handler",
+				"FunctionName": {
+					"Fn::If": [
+						"ShouldNotCreateEnvResources",
+						"SyncS3Triggers",
+						{
+							"Fn::Join": [
+								"",
+								[
+									"SyncS3Triggers",
+									"-",
+									{
+										"Ref": "env"
+									}
+								]
+							]
+						}
+					]
+				},
+				"Environment": {
+					"Variables": {
+						"ENV": {
+							"Ref": "env"
+						},
+						"REGION": {
+							"Ref": "AWS::Region"
+						},
+						"STORAGE_S3_BUCKETNAME": {
+							"Ref": "storageS3BucketName"
+						},
+						"ES_HOST_NAME": {
+							"Ref": "ElasticsearchHostName"
+						},
+						"ES_PORT": {
+							"Ref": "ElasticsearchPort"
+						}
+					}
+				},
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaExecutionRole",
+						"Arn"
+					]
+				},
+				"Runtime": "nodejs12.x",
+				"Timeout": "25",
+				"VpcConfig": {
+					"SecurityGroupIds": [
+						"sg-id"
+					],
+					"SubnetIds": [
+						"subnet-1",
+						"subnet-2",
+						"subnet-3"
+					]
+				},
+				"Code": {
+					"S3Bucket": "amplify-udemy-s3-trigger-dev-150000-deployment",
+					"S3Key": "amplify-builds/SyncS3Triggers-636a5956727143394654-build.zip"
+				}
+			}
+		},
+		"LambdaExecutionRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"RoleName": {
+					"Fn::If": [
+						"ShouldNotCreateEnvResources",
+						"udemys3triggerLambdaRole094c85e5",
+						{
+							"Fn::Join": [
+								"",
+								[
+									"udemys3triggerLambdaRole094c85e5",
+									"-",
+									{
+										"Ref": "env"
+									}
+								]
+							]
+						}
+					]
+				},
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"lambda.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				}
+			}
+		},
+		"lambdaexecutionpolicy": {
+			"DependsOn": [
+				"LambdaExecutionRole"
+			],
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "lambda-execution-policy",
+				"Roles": [
+					{
+						"Ref": "LambdaExecutionRole"
+					}
+				],
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": [
+								"logs:CreateLogGroup",
+								"logs:CreateLogStream",
+								"logs:PutLogEvents"
+							],
+							"Resource": {
+								"Fn::Sub": [
+									"arn:aws:logs:${region}:${account}:log-group:/aws/lambda/${lambda}:log-stream:*",
+									{
+										"region": {
+											"Ref": "AWS::Region"
+										},
+										"account": {
+											"Ref": "AWS::AccountId"
+										},
+										"lambda": {
+											"Ref": "LambdaFunction"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		},
+		"AmplifyResourcesPolicy": {
+			"DependsOn": [
+				"LambdaExecutionRole"
+			],
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "amplify-lambda-execution-policy",
+				"Roles": [
+					{
+						"Ref": "LambdaExecutionRole"
+					}
+				],
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": [
+								"s3:GetObject",
+								"s3:ListBucket"
+							],
+							"Resource": [
+								{
+									"Fn::Join": [
+										"",
+										[
+											"arn:aws:s3:::",
+											{
+												"Ref": "storageS3BucketName"
+											},
+											"/*"
+										]
+									]
+								}
+							]
+						},
+						{
+							"Effect": "Allow",
+							"Action": [
+								"logs:CreateLogGroup",
+								"logs:CreateLogStream",
+								"logs:PutLogEvents",
+								"ec2:CreateNetworkInterface",
+								"ec2:DescribeNetworkInterfaces",
+								"ec2:DeleteNetworkInterface"
+							],
+							"Resource": "*"
+						}
+					]
+				}
+			}
+		},
+		"LambdaInvokePermission": {
+			"Type": "AWS::Lambda::Permission",
+			"Properties": {
+				"FunctionName": {
+					"Fn::GetAtt": [
+						"LambdaFunction",
+						"Arn"
+					]
+				},
+				"Action": "lambda:InvokeFunction",
+				"Principal": "s3.amazonaws.com",
+				"SourceAccount": {
+					"Ref": "AWS::AccountId"
+				},
+				"SourceArn": {
+					"Fn::Sub": "arn:aws:s3:::${storageS3BucketName}"
+				}
+			}
+		},
+		"LambdaS3NotificationSetupIAMRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"lambda.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "root",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"s3:GetBucketNotification",
+										"s3:PutBucketNotification"
+									],
+									"Resource": {
+										"Fn::Sub": "arn:aws:s3:::${storageS3BucketName}"
+									}
+								},
+								{
+									"Effect": "Allow",
+									"Action": [
+										"logs:CreateLogGroup",
+										"logs:CreateLogStream",
+										"logs:PutLogEvents"
+									],
+									"Resource": "arn:aws:logs:*:*:*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"CustomResourceLambdaFunction": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "index.lambda_handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaS3NotificationSetupIAMRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"ZipFile": "\nfrom __future__ import print_function\nimport json\nimport boto3\nimport cfnresponse\n\nSUCCESS = \"SUCCESS\"\nFAILED = \"FAILED\"\n\nprint('Loading function')\ns3 = boto3.resource('s3')\n\ndef lambda_handler(event, context):\n    print(\"Received event: \" + json.dumps(event, indent=2))\n    responseData={}\n    try:\n        if event['RequestType'] == 'Delete':\n            print(\"Request Type:\",event['RequestType'])\n            Bucket=event['ResourceProperties']['Bucket']\n            delete_notification(Bucket)\n            print(\"Sending response to custom resource after Delete\")\n        elif event['RequestType'] == 'Create' or event['RequestType'] == 'Update':\n            print(\"Request Type:\",event['RequestType'])\n            LambdaArn=event['ResourceProperties']['LambdaArn']\n            Bucket=event['ResourceProperties']['Bucket']\n            add_notification(LambdaArn, Bucket)\n            responseData={'Bucket':Bucket}\n            print(\"Sending response to custom resource\")\n        responseStatus = 'SUCCESS'\n    except Exception as e:\n        print('Failed to process:', e)\n        responseStatus = 'FAILURE'\n        responseData = {'Failure': 'Something bad happened.'}\n    cfnresponse.send(event, context, responseStatus, responseData)\n\ndef add_notification(LambdaArn, Bucket):\n    bucket_notification = s3.BucketNotification(Bucket)\n    response = bucket_notification.put(\n      NotificationConfiguration={\n        'LambdaFunctionConfigurations': [\n          {\n              'LambdaFunctionArn': LambdaArn,\n              'Events': [\n                  's3:ObjectCreated:*'\n              ]\n          }\n        ]\n      }\n    )\n    print(\"Put request completed....\")\n  \ndef delete_notification(Bucket):\n    bucket_notification = s3.BucketNotification(Bucket)\n    response = bucket_notification.put(\n        NotificationConfiguration={}\n    )\n    print(\"Delete request completed....\")\n"
+				},
+				"Runtime": "python3.6",
+				"Timeout": 50
+			}
+		},
+		"LambdaTrigger": {
+			"Type": "Custom::LambdaTrigger",
+			"DependsOn": "LambdaInvokePermission",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"CustomResourceLambdaFunction",
+						"Arn"
+					]
+				},
+				"LambdaArn": {
+					"Fn::GetAtt": [
+						"LambdaFunction",
+						"Arn"
+					]
+				},
+				"Bucket": {
+					"Ref": "storageS3BucketName"
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"Name": {
+			"Value": {
+				"Ref": "LambdaFunction"
+			}
+		},
+		"Arn": {
+			"Value": {
+				"Fn::GetAtt": [
+					"LambdaFunction",
+					"Arn"
+				]
+			}
+		},
+		"Region": {
+			"Value": {
+				"Ref": "AWS::Region"
+			}
+		},
+		"LambdaExecutionRole": {
+			"Value": {
+				"Ref": "LambdaExecutionRole"
+			}
+		}
+	}
+}

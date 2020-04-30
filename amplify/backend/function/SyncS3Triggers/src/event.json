@@ -1,0 +1,38 @@
+{
+  "Records": [
+      {
+          "eventVersion": "2.1",
+          "eventSource": "aws:s3",
+          "awsRegion": "us-east-1",
+          "eventTime": "2020-04-24T12:47:36.201Z",
+          "eventName": "ObjectCreated:Put",
+          "userIdentity": {
+              "principalId": "AWS:AROAVN3EUA5Z7V2QVBTNX:issam.alzinati@udemy.com"
+          },
+          "requestParameters": {
+              "sourceIPAddress": "78.175.229.147"
+          },
+          "responseElements": {
+              "x-amz-request-id": "13C8841E3474D718",
+              "x-amz-id-2": "QfgNOdX3Wnl+DS1uJJYE2rq7ggqE8gAzNyvGzS95L71wiIYNJgGRclLa/fWtQeXQG4Os10Xsa+XoREA1aA5gPQRepivi0HNu"
+          },
+          "s3": {
+              "s3SchemaVersion": "1.0",
+              "configurationId": "MTJlYWUyNWYtYzY2ZS00MjhiLWI5Y2MtYzgxYjJiNzk4Yzk5",
+              "bucket": {
+                  "name": "udemy-s3-es-assets-dev",
+                  "ownerIdentity": {
+                      "principalId": "A3AE6M5KX04QD"
+                  },
+                  "arn": "arn:aws:s3:::udemy-s3-es-assets-dev"
+              },
+              "object": {
+                  "key": "image.png",
+                  "size": 2130683,
+                  "eTag": "d60f3e10414d36e671ca9683ab4de6ad",
+                  "sequencer": "005EA2DFE45A3C5FCE"
+              }
+          }
+      }
+  ]
+}
